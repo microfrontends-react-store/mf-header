@@ -1,16 +1,32 @@
 import React, { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, Link } from "react-router-dom";
 import { getProductsByKeyword, setProdutcs } from "@meli-store/api";
 import { routes } from "../helpers/header-helper";
 import { Searchbar } from "./Searchbar";
 
 export const Navbar = () => {
+
   const [data, setData] = useState({
-    keyword: "",
+    keyword: "Tenis",
     products: {},
+    loggedIn: false,
   });
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    sesionHandler();
+    const storageEvent = ({target}) => {
+      console.log(target.value)
+      // if (event.key == 'token') {
+      //   sesionHandler();
+      // }
+    }
+    window.addEventListener('storage', storageEvent);
+    return () => {
+      window.removeEventListener('storage', storageEvent);
+    }
+  }, []);
 
   useEffect(() => {
     getProductsByKeyword(data.keyword).then(({ results }) => {
@@ -20,9 +36,56 @@ export const Navbar = () => {
     });
   }, [data.keyword]);
 
+  useEffect(() => {
+    authOption = renderAuthOptions();
+  }, [data.loggedIn]);
+
   const searchHandler = (keyword) => {
     setData({ ...data, keyword });
   };
+
+  const sesionHandler = () => {
+    const token = window.localStorage.getItem("token");
+    if (token) {
+      setData({ ...data, loggedIn: true });
+    }
+  }
+
+  const closeSesionHandler = () => {
+    window.localStorage.removeItem("token");
+    setData({ ...data, loggedIn: false });
+  }
+
+  const renderAuthOptions = () => {
+    const token = window.localStorage.getItem("token")
+    if (token) {
+      return (
+        <li className="nav-item" onClick={closeSesionHandler}>
+          <Link
+            className="nav-link"
+            to={"/"}
+          >
+            {"Cerrar sesión"}
+          </Link>
+        </li>
+      )
+    } else {
+      return (
+        <li className="nav-item" key={"/login"}>
+          <NavLink
+            className={({ isActive }) =>
+              "nav-link " + (isActive ? "active" : "")
+            }
+            to={"/login"}
+          >
+            {"Login"}
+          </NavLink>
+        </li>
+      )
+    }
+  }
+
+  let authOption = renderAuthOptions();
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -55,6 +118,7 @@ export const Navbar = () => {
                 </NavLink>
               </li>
             ))}
+            {authOption}
           </ul>
           <Searchbar query={data.keyword} searchHandler={searchHandler} />
         </div>
